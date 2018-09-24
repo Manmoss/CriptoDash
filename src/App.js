@@ -1,30 +1,14 @@
 import React, { Component } from 'react';
 import './App.css';
 import styled, {css} from 'styled-components';
-
-const Logo = styled.div`
-  font-size: 1.5em;
-`
-
-const ControlButton = styled.div`
-  cursor: pointer;
-  ${props => props.active && css`
-    text-shadow: 0px 0px 60px #03ff03
-  `}
-`
+import AppBar from './AppBar';
+import CoinList from './CoinList'
+const cc = require('cryptocompare')
 
 const AppLayout = styled.div`
   padding: 40px;
 `
-
-const Bar = styled.div`
-  display: grid;
-  margin-bottom: 40px;
-  grid-template-columns: 180px auto 100px 100px;
-`
-
 const Content = styled.div`
-
 `
 
 const checkFirstVisit = () => {
@@ -43,7 +27,14 @@ class App extends Component {
   state = {
     page: 'dashboard',
     ...checkFirstVisit()
+  }
 
+  componentDidMount = async () => {
+    this.fetchCoins();
+  }
+  fetchCoins = async () => {
+    let coinList = (await cc.coinList()).Data;
+    this.setState({ coinList });
   }
 
   displayingDashboard = () => this.state.page === 'dashboard'
@@ -68,29 +59,25 @@ class App extends Component {
       <div onClick={this.confirmFavorites}>
         Confirm Favorite
       </div>
+      <div>
+        {CoinList.call(this)}
+      </div>
     </div>
+  }
+
+  loadingContent = () => {
+    if(!this.state.coinList){
+      return <div>Loading Coins</div>
+    }
   }
 
   render() {
     return (
       <AppLayout>
-        <Bar>
-          <Logo>
-            CryptoDash
-          </Logo>
-          <div>
-          </div>
-          {!this.state.firstVisit && (
-            <ControlButton onClick={() => {this.setState({page: 'dashboard'})}} active={this.displayingDashboard()}>
-              Dashboard
-            </ControlButton>)}
-          <ControlButton onClick={() => {this.setState({page: 'settings'})}} active={this.displayingSettings()}>
-            Settings
-          </ControlButton>
-        </Bar>
-        <Content>
+        {AppBar.call(this)}
+        {this.loadingContent() || <Content>
           {this.displayingSettings() && this.settingsContent()}
-        </Content>
+        </Content>}
       </AppLayout>
     );
   }
