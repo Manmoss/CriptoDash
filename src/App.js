@@ -5,6 +5,7 @@ import AppBar from './AppBar';
 import CoinList from './CoinList';
 import _ from 'lodash';
 import Search from './Search';
+import Dashboard from './Dashboard';
 import {ConfirmButton} from './Button';
 import fuzzy from 'fuzzy';
 const cc = require('cryptocompare')
@@ -22,18 +23,19 @@ export const CenterDiv = styled.div`
 const MAX_FAVORITES = 10;
 
 const checkFirstVisit = () => {
-  let cryptoDashData = localStorage.getItem('cryptoDash')
+  let cryptoDashData = JSON.parse(localStorage.getItem('cryptoDash'));
   if(!cryptoDashData){
     return {
       firstVisit: true,
       page: 'settings'
     }
   }
-  return{};
+  return{
+    favorites: cryptoDashData.favorites
+  };
 }
 
 class App extends Component {
-
   state = {
     page: 'dashboard',
     favorites: ['ETH', 'BTC', 'XMR', 'DOGE', 'EOS'],
@@ -42,12 +44,30 @@ class App extends Component {
 
   componentDidMount = async () => {
     this.fetchCoins();
+    this.fetchPrices();
   }
   fetchCoins = async () => {
     let coinList = (await cc.coinList()).Data;
     this.setState({ coinList });
   }
-
+  fetchPrices = async () => {
+    let prices;
+    try {
+      prices = await this.prices();
+    } catch(e) {
+      this.setState({error: true})
+    }
+    console.log(prices)
+    this.setState({prices});
+  }
+  prices = () => {
+    let promises = [];
+    this.state.favorites.forEach(sym => {
+      promises.push(cc.priceFull(sym, 'USD'));
+    })
+    return Promise.all(promises)
+  }
+  
   displayingDashboard = () => this.state.page === 'dashboard'
   displayingSettings = () => this.state.page === 'settings'
   firstVisitMessage = () => {
@@ -60,8 +80,10 @@ class App extends Component {
     localStorage.setItem('cryptoDash', 'test');
     this.setState({
       firstVisit: false,
-      page: 'dashboard'
+      page: 'dashboard',
+      prices: null
     });
+    this.fetchPrices();
     localStorage.setItem('cryptoDash', JSON.stringify({
       favorites: this.state.favorites
     }));
@@ -86,6 +108,9 @@ class App extends Component {
   loadingContent = () => {
     if(!this.state.coinList){
       return <div>Loading Coins</div>
+    }
+    if(!this.state.prices){
+      return <div>Loading Prices</div>
     }
   }
 
@@ -134,6 +159,7 @@ class App extends Component {
         {AppBar.call(this)}
         {this.loadingContent() || <Content>
           {this.displayingSettings() && this.settingsContent()}
+          {this.displayingDashboard() && Dashboard.call(this)}
         </Content>}
       </AppLayout>
     );
