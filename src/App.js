@@ -52,35 +52,28 @@ class App extends Component {
     this.fetchCoins();
     this.fetchPrices();
   }
-  validateFavorites = coinList => {
-    let validatedFavorites = [];
-    this.state.favorites.forEach(favorite => {
-      if (coinList[favorite]) {
-        validatedFavorites.push(favorite);
-      }
-    });
-    return validatedFavorites;
-  };
   fetchCoins = async () => {
     let coinList = (await cc.coinList()).Data;
     this.setState({ coinList });
   };
   fetchPrices = async () => {
     if (this.state.firstVisit) return;
-    let prices = await this.prices();
+    let prices;
+    try {
+      prices = await this.prices();
+    } catch(e) {
+      this.setState({error: true})
+    }
     this.setState({ prices });
   };
   fetchHistorical = async () => {
-    if(this.state.currentFavorite){
-      let results = await this.historical();
-      console.log('Fetchging for', this.state.currentFavorite);
-      let historical = [{
-        name: this.state.currentFavorite,
-        data: results.map((ticker, index) => [moment().subtract({months: TIME_UNITS - index}).valueOf(), ticker.USD])
-      }];
-      console.log('results', historical);
-      this.setState({historical});
-    }
+    if(this.state.firstVisit) return;
+    let results = await this.historical();
+    let historical = [{
+      name: this.state.currentFavorite,
+      data: results.map((ticker, index) => [moment().subtract({months: TIME_UNITS - index}).valueOf(), ticker.USD])
+    }];
+    this.setState({historical});
   }
   historical = () => {
     let promises = [];
@@ -149,7 +142,7 @@ class App extends Component {
     if(!this.state.coinList){
       return <div>Loading Coins</div>
     }
-    if(!this.state.prices){
+    if(!this.state.firstVisit && !this.state.prices){
       return <div>Loading Prices</div>
     }
   }
