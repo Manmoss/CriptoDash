@@ -8,6 +8,8 @@ import Search from './Search';
 import Dashboard from './Dashboard';
 import {ConfirmButton} from './Button';
 import fuzzy from 'fuzzy';
+import moment from 'moment';
+
 const cc = require('cryptocompare')
 
 const AppLayout = styled.div`
@@ -21,6 +23,7 @@ export const CenterDiv = styled.div`
 `
 
 const MAX_FAVORITES = 10;
+const TIME_UNITS = 10;
 
 const checkFirstVisit = () => {
   let cryptoDashData = JSON.parse(localStorage.getItem('cryptoDash'));
@@ -45,6 +48,7 @@ class App extends Component {
   }
 
   componentDidMount = () => {
+    this.fetchHistorical();
     this.fetchCoins();
     this.fetchPrices();
   }
@@ -66,6 +70,26 @@ class App extends Component {
     let prices = await this.prices();
     this.setState({ prices });
   };
+  fetchHistorical = async () => {
+    if(this.state.currentFavorite){
+      let results = await this.historical();
+      console.log('Fetchging for', this.state.currentFavorite);
+      let historical = [{
+        name: this.state.currentFavorite,
+        data: results.map((ticker, index) => [moment().subtract({months: TIME_UNITS - index}).valueOf(), ticker.USD])
+      }];
+      console.log('results', historical);
+      this.setState({historical});
+    }
+  }
+  historical = () => {
+    let promises = [];
+    for(let units = TIME_UNITS; units > 0; units--) {
+      promises.push(cc.priceHistorical(this.state.currentFavorite, ['USD'], moment().subtract({months: units}).toDate()));
+    }
+    return Promise.all(promises)
+  }
+
   prices = () => {
     let promises = [];
     this.state.favorites.forEach(sym => {
@@ -89,9 +113,14 @@ class App extends Component {
       firstVisit: false,
       page: 'dashboard',
       prices: null,
-      currentFavorite
+      currentFavorite,
+      hitorical: null
+    }, () => {
+      this.fetchPrices();
+      this.fetchHistorical();
     });
     this.fetchPrices();
+    this.fetchHistorical();
     localStorage.setItem('cryptoDash', JSON.stringify({
       favorites: this.state.favorites,
       currentFavorite
@@ -172,11 +201,10 @@ class App extends Component {
     return (
       <AppLayout>
         {AppBar.call(this)}
-        {this.loadingContent() || (
-          <Content>
-            {this.displayingSettings() && this.settingsContent()}
+        {this.loadingContent() || <Content>
+            {this.loadingContent() || this.displayingSettings() && this.settingsContent()}
             {this.displayingDashboard() && Dashboard.call(this)}
-          </Content>
+          </Content>}
         )}
       </AppLayout>
     );
