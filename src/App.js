@@ -44,6 +44,7 @@ class App extends Component {
   state = {
     page: 'dashboard',
     favorites: ['ETH', 'BTC', 'XMR', 'DOGE', 'EOS'],
+    timeInterval: 'months',
     ...checkFirstVisit()
   }
 
@@ -71,14 +72,27 @@ class App extends Component {
     let results = await this.historical();
     let historical = [{
       name: this.state.currentFavorite,
-      data: results.map((ticker, index) => [moment().subtract({months: TIME_UNITS - index}).valueOf(), ticker.USD])
+      data: results.map((ticker, index) => [
+        moment()
+          .subtract({[this.state.timeInterval]: TIME_UNITS - index})
+          .valueOf(), 
+        ticker.USD
+      ])
     }];
     this.setState({historical});
   }
   historical = () => {
     let promises = [];
     for(let units = TIME_UNITS; units > 0; units--) {
-      promises.push(cc.priceHistorical(this.state.currentFavorite, ['USD'], moment().subtract({months: units}).toDate()));
+      promises.push(
+        cc.priceHistorical(
+          this.state.currentFavorite, 
+          ['USD'], 
+          moment()
+            .subtract({[this.state.timeInterval]: units})
+            .toDate()
+          )
+        );
     }
     return Promise.all(promises)
   }
@@ -112,9 +126,9 @@ class App extends Component {
       this.fetchPrices();
       this.fetchHistorical();
     });
-    this.fetchPrices();
-    this.fetchHistorical();
-    localStorage.setItem('cryptoDash', JSON.stringify({
+    localStorage.setItem(
+      'cryptoDash',
+       JSON.stringify({
       favorites: this.state.favorites,
       currentFavorite
     }));
@@ -198,7 +212,6 @@ class App extends Component {
             {this.loadingContent() || this.displayingSettings() && this.settingsContent()}
             {this.displayingDashboard() && Dashboard.call(this)}
           </Content>}
-        )}
       </AppLayout>
     );
   }
