@@ -30,8 +30,10 @@ const checkFirstVisit = () => {
       page: 'settings'
     }
   }
+  let { favorites, currentFavorite } = cryptoDashData;
   return{
-    favorites: cryptoDashData.favorites
+    favorites,
+    currentFavorite
   };
 }
 
@@ -42,24 +44,28 @@ class App extends Component {
     ...checkFirstVisit()
   }
 
-  componentDidMount = async () => {
+  componentDidMount = () => {
     this.fetchCoins();
     this.fetchPrices();
   }
+  validateFavorites = coinList => {
+    let validatedFavorites = [];
+    this.state.favorites.forEach(favorite => {
+      if (coinList[favorite]) {
+        validatedFavorites.push(favorite);
+      }
+    });
+    return validatedFavorites;
+  };
   fetchCoins = async () => {
     let coinList = (await cc.coinList()).Data;
     this.setState({ coinList });
-  }
+  };
   fetchPrices = async () => {
-    let prices;
-    try {
-      prices = await this.prices();
-    } catch(e) {
-      this.setState({error: true})
-    }
-    console.log(prices)
-    this.setState({prices});
-  }
+    if (this.state.firstVisit) return;
+    let prices = await this.prices();
+    this.setState({ prices });
+  };
   prices = () => {
     let promises = [];
     this.state.favorites.forEach(sym => {
@@ -77,33 +83,38 @@ class App extends Component {
   }
 
   confirmFavorites = () => {
+    let currentFavorite = this.state.favorites[0];
     localStorage.setItem('cryptoDash', 'test');
     this.setState({
       firstVisit: false,
       page: 'dashboard',
-      prices: null
+      prices: null,
+      currentFavorite
     });
     this.fetchPrices();
     localStorage.setItem('cryptoDash', JSON.stringify({
-      favorites: this.state.favorites
+      favorites: this.state.favorites,
+      currentFavorite
     }));
   }
 
   settingsContent = () => {
-    return <div>
-      {this.firstVisitMessage()}
+    return (
       <div>
-        {CoinList.call(this, true)}
-        <CenterDiv>
-          <ConfirmButton onClick={this.confirmFavorites}>
-            Confirm Favorites
-          </ConfirmButton>
-        </CenterDiv>
-        {Search.call(this)}
-        {CoinList.call(this)}
+        {this.firstVisitMessage()}
+        <div>
+          {CoinList.call(this, true)}
+          <CenterDiv>
+            <ConfirmButton onClick={this.confirmFavorites}>
+              Confirm Favorites
+            </ConfirmButton>
+          </CenterDiv>
+          {Search.call(this)}
+          {CoinList.call(this)}
+        </div>
       </div>
-    </div>
-  }
+    );
+  };
 
   loadingContent = () => {
     if(!this.state.coinList){
@@ -128,22 +139,26 @@ class App extends Component {
   }
 
   isInFavorites = key => _.includes(this.state.favorites, key)
-  handleFilter = _.debounce((inputValue) => {
+  handleFilter = _.debounce(inputValue => {
     // Get all the coin symbol
     let coinSymbols = Object.keys(this.state.coinList);
     //Get all the coin names, maps symbol to name
     let coinNames = coinSymbols.map(sym => this.state.coinList[sym].CoinName);
     let allStringsToSearch = coinSymbols.concat(coinNames);
-    let fuzzyResults = fuzzy.filter(inputValue, allStringsToSearch, {}).map(result => result.string);
+    let fuzzyResults = fuzzy
+      .filter(inputValue, allStringsToSearch, {})
+      .map(result => result.string);
     
     let filteredCoins = _.pickBy(this.state.coinList, (result, symKey) => {
       let coinName = result.CoinName;
       // If our fuzzy results contains this symbol OR coinName, include it (return true)
-      return _.includes(fuzzyResults, symKey) || _.includes(fuzzyResults, coinName);
+      return (
+        _.includes(fuzzyResults, symKey) || _.includes(fuzzyResults, coinName)
+      );
     });
     this.setState({ filteredCoins })
   }, 500)
-  filterCoins = (e) => {
+  filterCoins = e => {
     let inputValue = _.get(e, 'target.value');
     if(!inputValue) {
       this.setState({
@@ -152,15 +167,17 @@ class App extends Component {
       return;
     }
     this.handleFilter(inputValue);
-  }
+  };
   render() {
     return (
       <AppLayout>
         {AppBar.call(this)}
-        {this.loadingContent() || <Content>
-          {this.displayingSettings() && this.settingsContent()}
-          {this.displayingDashboard() && Dashboard.call(this)}
-        </Content>}
+        {this.loadingContent() || (
+          <Content>
+            {this.displayingSettings() && this.settingsContent()}
+            {this.displayingDashboard() && Dashboard.call(this)}
+          </Content>
+        )}
       </AppLayout>
     );
   }
