@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "cryptocompare": "^0.5.0",
+    "firebase": "^5.5.4",
     "fuzzy": "^0.1.3",
     "lodash": "^4.17.11",
     "moment": "^2.22.2",
@@ -18,5 +19,24 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
-  }
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ],
+  "description": "This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).",
+  "main": "index.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://Manmoss@github.com/Manmoss/CriptoDash.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Manmoss/CriptoDash/issues"
+  },
+  "homepage": "https://github.com/Manmoss/CriptoDash#readme"
 }
